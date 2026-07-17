@@ -1,0 +1,29 @@
+# @zakkster/lite-scope
+
+Scope Probe Protocol (SPP v1) core for the @zakkster profiler suite.
+Zero-dependency single-file ESM (Scope.js). Zero-GC write path.
+
+Record = 4 f64 slots [packed, t, a, b]; packed = (streamId<<16|opcode)>>>0,
+both u16. t = ms since scope epoch. Wide payloads chain CONT records
+(opcode 0x0F01, max 2 per base, static width per op). Opcode high byte is
+the family block: 0x01 trace, 0x02 gc, 0x03 signal, 0x04 gpu+frame,
+0x05 layout, 0x06 inp, 0x07 worker, 0x08 leak, 0x0F meta/gate.
+Strings are interned to u32 ids at init (scope.intern); never on the wire.
+
+API: createScope({sink,clock,epochWallMs}) -> { register(desc)->channel,
+streams(), intern(), stringTable(), now(), setClockOffset(ms), widthOf(packed),
+emitEpoch(), metaWrite(op,t,a,b) }. channel = { id, write(op,t,a,b),
+cont(c0,c1,c2), intern }. Sinks: createMemorySink(capacityRecords) pow2
+overwrite-oldest ring (write/forEach/toSlab/size/totalWritten/overflow/clear),
+createMuxSink(sinks), createNullSink(). Decoder: readSlab(slab, widthOf, cb)
+with cb(packed, t, payloadScratch, payloadCount).
+
+Probes never import this package: they receive sink/channel by DI and speak
+the protocol (single method sink.write(packed,t,a,b)). Normative spec in
+PROTOCOL.md; golden vectors in vectors.json (vendored by probe repos).
+
+v1.0.0 adds scope.gate.mjs: drop-in CI gate script template. Evaluates SPP
+stream budgets, exit codes 0 pass / 1 regression. NDJSON output for CI
+artifacts. VersionMatrix-compatible (exit 3 reserved for the matrix runner's
+recapture semantics, never emitted by the gate itself). CI-RECIPE.md has
+the GitHub Actions recipe and budget examples.

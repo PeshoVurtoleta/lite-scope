@@ -1,0 +1,64 @@
+{
+  "name": "@zakkster/lite-scope",
+  "version": "1.0.0",
+  "description": "Scope Probe Protocol (SPP v1): registry, sinks, and timebase for the @zakkster profiler suite. Zero-dependency single-file ESM, zero-GC write path.",
+  "type": "module",
+  "main": "./Scope.js",
+  "module": "./Scope.js",
+  "types": "./Scope.d.ts",
+  "exports": {
+    ".": {
+      "types": "./Scope.d.ts",
+      "node": "./Scope.js",
+      "import": "./Scope.js",
+      "default": "./Scope.js"
+    }
+  },
+  "sideEffects": false,
+  "files": [
+    "Scope.js",
+    "Scope.d.ts",
+    "PROTOCOL.md",
+    "vectors.json",
+    "CHANGELOG.md",
+    "llms.txt",
+    "README.md",
+    "LICENSE",
+    "scope.gate.mjs",
+    "CI-RECIPE.md"
+  ],
+  "scripts": {
+    "test": "node --test",
+    "vectors": "node gen-vectors.mjs"
+  },
+  "keywords": [
+    "profiler",
+    "instrumentation",
+    "ring-buffer",
+    "zero-gc",
+    "oscilloscope",
+    "spp",
+    "lite-signal"
+  ],
+  "publishConfig": {
+    "access": "public"
+  },
+  "author": "Zahary Shinikchiev <shinikchiev@yahoo.com>",
+  "license": "MIT",
+  "homepage": "https://github.com/PeshoVurtoleta/lite-perf-gate#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/PeshoVurtoleta/lite-perf-gate.git"
+  },
+  "bugs": {
+    "url": "https://github.com/PeshoVurtoleta/lite-perf-gate/issues",
+    "email": "shinikchiev@yahoo.com"
+  },
+  "funding": {
+    "type": "github",
+    "url": "https://github.com/sponsors/PeshoVurtoleta"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}
