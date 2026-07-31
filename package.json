@@ -1,6 +1,6 @@
 {
   "name": "@zakkster/lite-scope",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "Scope Probe Protocol (SPP v1): registry, sinks, and timebase for the @zakkster profiler suite. Zero-dependency single-file ESM, zero-GC write path.",
   "type": "module",
   "main": "./Scope.js",

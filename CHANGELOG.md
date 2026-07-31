@@ -1,5 +1,26 @@
 # Changelog
 
+## 1.1.0 - 2026-08-01
+
+Block 0x09 assigned: lite-profiler phase telemetry. Reduced per-phase window
+stats (avg / p99 / max) as three width-1 LEVEL ops 0x0900-0x0902, one
+"phase-telemetry" stream, `phaseTagId` in slot b.
+
+Additive per-op assignment in a previously-reserved block. SPP_VERSION stays 1:
+no layout change, no existing-op change, and every pre-existing golden vector is
+byte-identical -- only a new `phaseTelemetry` case is appended. This is the
+sanctioned "normative by inclusion in vectors.json" path (PROTOCOL.md sec 3),
+not a protocol break.
+
+- Scope.js / Scope.d.ts: `BLOCK_PHASE = 0x09`. No per-op consts (per the
+  block-0x04 frame-telemetry precedent, probe opcodes live in the producer +
+  PROTOCOL.md + vectors.json, never in Scope.js).
+- PROTOCOL.md: block-table row split (0x09 assigned, 0x0A..0x0E still reserved)
+  + block 0x09 per-op table; conformance list notes the new case.
+- gen-vectors.mjs / vectors.json: `phaseTelemetry` golden case -- intern bridge
+  (physics=0, render=1), tag ids in b, decoded payloads.
+- Version bump 1.1.0 in source, test, package.json.
+
 ## 1.0.0 - 2026-07-08
 
 Protocol freeze. All 10 opcode blocks (0x01-0x08, 0x0F) have per-op

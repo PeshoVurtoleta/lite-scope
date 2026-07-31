@@ -6,7 +6,7 @@ import { readFileSync } from 'node:fs';
 import {
   VERSION, SPP_VERSION, SLOTS, LAYOUT_ID, LAYOUT_CHECKSUM,
   BLOCK_TRACE, BLOCK_GC, BLOCK_SIGNAL, BLOCK_GPU, BLOCK_LAYOUT,
-  BLOCK_INP, BLOCK_WORKER, BLOCK_LEAK, BLOCK_META,
+  BLOCK_INP, BLOCK_WORKER, BLOCK_LEAK, BLOCK_PHASE, BLOCK_META,
   OP_VOID, OP_EPOCH, OP_CONT, OP_CLOCK_SYNC, OP_GATE_VERDICT, META_STREAM,
   KIND_LEVEL, KIND_INSTANT, KIND_SPAN, KIND_COUNTER, MAX_WIDTH, MAX_PAYLOAD,
   pack, streamOf, opOf, blockOf, fnv1a32,
@@ -32,7 +32,7 @@ function collect(sink) {
 
 describe('version discipline', function () {
   it('VERSION matches package.json (triple bump)', function () {
-    assert.equal(VERSION, '1.0.0');
+    assert.equal(VERSION, '1.1.0');
     assert.equal(PKG.version, VERSION);
   });
 
@@ -78,8 +78,8 @@ describe('packing', function () {
 
   it('block constants cover the frozen map', function () {
     assert.deepEqual(
-      [BLOCK_TRACE, BLOCK_GC, BLOCK_SIGNAL, BLOCK_GPU, BLOCK_LAYOUT, BLOCK_INP, BLOCK_WORKER, BLOCK_LEAK, BLOCK_META],
-      [0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x0F]
+      [BLOCK_TRACE, BLOCK_GC, BLOCK_SIGNAL, BLOCK_GPU, BLOCK_LAYOUT, BLOCK_INP, BLOCK_WORKER, BLOCK_LEAK, BLOCK_PHASE, BLOCK_META],
+      [0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0F]
     );
   });
 });
@@ -477,6 +477,26 @@ describe('golden vectors (vectors.json is normative)', function () {
       out.push({ packed: p, t: t, payload: Array.from(payload.subarray(0, count)) });
     });
     assert.deepEqual(out, VECTORS.cases.tornChain.decoded);
+  });
+
+  it('phase-telemetry vector (block 0x09) carries interned tag ids in b', function () {
+    const pt = VECTORS.cases.phaseTelemetry;
+    const slab = Float64Array.from(pt.slab);
+    const phase = [];
+    readSlab(slab, function () { return 1; }, function (p, t, payload, count) {
+      if (((p & 0xFFFF) >>> 8) === BLOCK_PHASE) {
+        phase.push({ op: p & 0xFFFF, stream: p >>> 16, a: payload[0], b: payload[1] });
+      }
+    });
+    // Six LEVEL samples: three ops x two phases, b = interned phase-tag id.
+    assert.equal(phase.length, 6);
+    assert.deepEqual(phase.map(function (r) { return r.op; }),
+      [0x0900, 0x0901, 0x0902, 0x0900, 0x0901, 0x0902]);
+    assert.deepEqual(phase.map(function (r) { return r.b; }),
+      [pt.tags.physics, pt.tags.physics, pt.tags.physics, pt.tags.render, pt.tags.render, pt.tags.render]);
+    assert.ok(phase.every(function (r) { return r.stream === pt.streamId; }));
+    assert.equal(pt.table[pt.tags.physics], 'physics');
+    assert.equal(pt.table[pt.tags.render], 'render');
   });
 });
 

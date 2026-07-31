@@ -7,7 +7,8 @@ Record = 4 f64 slots [packed, t, a, b]; packed = (streamId<<16|opcode)>>>0,
 both u16. t = ms since scope epoch. Wide payloads chain CONT records
 (opcode 0x0F01, max 2 per base, static width per op). Opcode high byte is
 the family block: 0x01 trace, 0x02 gc, 0x03 signal, 0x04 gpu+frame,
-0x05 layout, 0x06 inp, 0x07 worker, 0x08 leak, 0x0F meta/gate.
+0x05 layout, 0x06 inp, 0x07 worker, 0x08 leak, 0x09 profiler phase telemetry,
+0x0F meta/gate.
 Strings are interned to u32 ids at init (scope.intern); never on the wire.
 
 API: createScope({sink,clock,epochWallMs}) -> { register(desc)->channel,
@@ -27,3 +28,10 @@ stream budgets, exit codes 0 pass / 1 regression. NDJSON output for CI
 artifacts. VersionMatrix-compatible (exit 3 reserved for the matrix runner's
 recapture semantics, never emitted by the gate itself). CI-RECIPE.md has
 the GitHub Actions recipe and budget examples.
+
+v1.1.0 assigns block 0x09 (lite-profiler phase telemetry): one "phase-telemetry"
+stream, three width-1 LEVEL ops 0x0900 phase.avg / 0x0901 phase.p99 / 0x0902
+phase.max, a = stat ms, b = interned phase-tag id. Additive in reserved space;
+SPP stays v1. lite-scope owns the block; lite-profiler is the sole producer and
+inlines the opcodes (imports nothing). See PROTOCOL.md block 0x09 + the
+phaseTelemetry golden vector.

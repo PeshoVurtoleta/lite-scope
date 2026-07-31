@@ -10,7 +10,7 @@ import {writeFileSync} from 'node:fs';
 import {pathToFileURL} from 'node:url';
 import {
     SPP_VERSION, LAYOUT_ID, LAYOUT_CHECKSUM, fnv1a32, pack,
-    KIND_INSTANT, KIND_SPAN,
+    KIND_INSTANT, KIND_SPAN, KIND_LEVEL,
     createScope, createMemorySink, readSlab
 } from './Scope.js';
 
@@ -157,6 +157,42 @@ export function buildVectors() {
         table: internScope.stringTable()
     };
 
+    // -- phase telemetry (block 0x09: reduced per-phase LEVEL stats) ----------------
+    // One "phase-telemetry" stream, three width-1 LEVEL ops (avg/p99/max); a = stat
+    // ms, b = interned phase-tag id. Two phases (physics=0, render=1) prove the b
+    // slot carries a dense scope-interned id, per the block 0x01 tagId convention.
+    const phaseSink = createMemorySink(16);
+    const phaseScope = createScope({
+        sink: phaseSink, clock: function () {
+            return 0;
+        }, epochWallMs: EPOCH_WALL
+    });
+    const physicsId = phaseScope.intern('physics');
+    const renderId = phaseScope.intern('render');
+    const ph = phaseScope.register({
+        name: 'phase-telemetry',
+        unit: 'ms',
+        hz: 10,
+        ops: [
+            {code: 0x0900, name: 'phase.avg', kind: KIND_LEVEL},
+            {code: 0x0901, name: 'phase.p99', kind: KIND_LEVEL},
+            {code: 0x0902, name: 'phase.max', kind: KIND_LEVEL}
+        ]
+    });
+    ph.write(0x0900, 100, 2, physicsId);
+    ph.write(0x0901, 100, 5, physicsId);
+    ph.write(0x0902, 100, 6, physicsId);
+    ph.write(0x0900, 100, 8, renderId);
+    ph.write(0x0901, 100, 20, renderId);
+    ph.write(0x0902, 100, 24, renderId);
+    const phaseTelemetry = {
+        streamId: ph.id,
+        tags: {physics: physicsId, render: renderId},
+        table: phaseScope.stringTable(),
+        slab: slabToArray(phaseSink.toSlab()),
+        decoded: decode(phaseSink.toSlab(), phaseScope.widthOf)
+    };
+
     return {
         spp: SPP_VERSION,
         layoutId: LAYOUT_ID,
@@ -169,7 +205,8 @@ export function buildVectors() {
             wideRecord: wideRecord,
             ringWrap: ringWrap,
             tornChain: tornChain,
-            intern: intern
+            intern: intern,
+            phaseTelemetry: phaseTelemetry
         }
     };
 }

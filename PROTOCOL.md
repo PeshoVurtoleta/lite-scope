@@ -63,7 +63,8 @@ The high byte of the u16 opcode is the family block:
 | 0x06 | lite-inp | frozen range |
 | 0x07 | lite-worker-profiler | frozen range |
 | 0x08 | lite-leak | frozen (see below) |
-| 0x09..0x0E | reserved for future probe families | frozen |
+| 0x09 | lite-profiler phase telemetry | frozen range |
+| 0x0A..0x0E | reserved for future probe families | frozen |
 | 0x0F | meta + gate | frozen |
 
 "Frozen range" means the block assignment is settled; per-op assignments
@@ -129,6 +130,25 @@ All width 1. lite-leak's detection is FinalizationRegistry-based; onLeak
 fires when a tracked object is collected without disposal. The adapter
 hooks onLeak/onWarning/onFinding and provides snapshot(tracker) for
 periodic metrics. Reclaim count accumulates between snapshots.
+
+Block 0x09 per-op table (frozen -- lite-profiler phase-telemetry probe):
+
+| Op | Name | Kind | a | b |
+|---|---|---|---|---|
+| 0x0900 | phase.avg | LEVEL | avgMs | phaseTagId |
+| 0x0901 | phase.p99 | LEVEL | p99Ms | phaseTagId |
+| 0x0902 | phase.max | LEVEL | maxMs | phaseTagId |
+
+All width 1. One "phase-telemetry" stream carries every registered phase; the
+reduced per-phase window stats (avg / p99 / max over the frame ring) are emitted
+as LEVEL samples with `phaseTagId` in b selecting the phase. Tag ids are the
+producer's dense u32 phase-tag ids (a scope.intern bridge at registration, per
+the block 0x01 tagId convention); consumers resolve id -> name via the scope
+intern table or the profiler summary. A sink-only decoupled probe MAY instead
+place the profiler's own dense phase index in b, meaningful against the
+profiler's phase list. lite-profiler is the sole producer for this block; the
+block owner is lite-scope (protocol home), the opcodes are inlined by the
+producer, which imports nothing from this package.
 
 Meta opcodes (block 0x0F). All are width 1 in SPP v1:
 
@@ -282,7 +302,8 @@ ancestor to semantic ancestor:
 `vectors.json` is normative. It fixes: packing (including the streamId
 high-bit case), the layout checksum, the EPOCH record, a plain instant
 stream, a width-3 record with its decoded payload, ring wrap-around with
-accounting, torn-chain decoding, and intern id assignment.
+accounting, torn-chain decoding, intern id assignment, and per-phase telemetry
+(block 0x09: three LEVEL ops carrying an interned phase-tag id in b).
 
 Probe repos copy-vendor the vector file (no dev dependency) and assert
 against it under `node:test`. The generator (`gen-vectors.mjs`) must
