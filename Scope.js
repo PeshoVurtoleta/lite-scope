@@ -10,7 +10,7 @@
 // Probe packages never import this file; they receive a sink (or channel)
 // by dependency injection and speak the protocol, not the package.
 
-export const VERSION = '1.1.0';
+export const VERSION = '1.2.0';
 
 // ---------------------------------------------------------------------------
 // Protocol constants
@@ -42,6 +42,7 @@ export const BLOCK_INP = 0x06;
 export const BLOCK_WORKER = 0x07;
 export const BLOCK_LEAK = 0x08; // provisional: frozen range, open assignments
 export const BLOCK_PHASE = 0x09; // lite-profiler phase telemetry (reduced per-phase LEVEL stats)
+export const BLOCK_COUNTER = 0x0A; // lite-profiler counter telemetry (reduced per-counter LEVEL stats)
 export const BLOCK_META = 0x0F;
 
 // Meta opcodes. OP_CONT rides any streamId (it continues that stream's

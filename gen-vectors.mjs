@@ -193,6 +193,44 @@ export function buildVectors() {
         decoded: decode(phaseSink.toSlab(), phaseScope.widthOf)
     };
 
+    // -- counter telemetry (block 0x0A: reduced per-counter LEVEL stats) -------------
+    // One "counter-telemetry" stream, three width-1 LEVEL ops (avg/max/last); a = stat
+    // count, b = interned counter-tag id. Two counters (drawCalls=0, floatsUploaded=1)
+    // prove the b slot carries a dense scope-interned id, per the block 0x01 tagId
+    // convention. Counters are deterministic lower-is-better integers: `last` is the
+    // exact current-frame value, `max` the gated ceiling.
+    const counterSink = createMemorySink(16);
+    const counterScope = createScope({
+        sink: counterSink, clock: function () {
+            return 0;
+        }, epochWallMs: EPOCH_WALL
+    });
+    const drawCallsId = counterScope.intern('drawCalls');
+    const floatsUploadedId = counterScope.intern('floatsUploaded');
+    const co = counterScope.register({
+        name: 'counter-telemetry',
+        unit: 'count',
+        hz: 10,
+        ops: [
+            {code: 0x0A00, name: 'counter.avg', kind: KIND_LEVEL},
+            {code: 0x0A01, name: 'counter.max', kind: KIND_LEVEL},
+            {code: 0x0A02, name: 'counter.last', kind: KIND_LEVEL}
+        ]
+    });
+    co.write(0x0A00, 100, 12, drawCallsId);
+    co.write(0x0A01, 100, 20, drawCallsId);
+    co.write(0x0A02, 100, 18, drawCallsId);
+    co.write(0x0A00, 100, 300, floatsUploadedId);
+    co.write(0x0A01, 100, 512, floatsUploadedId);
+    co.write(0x0A02, 100, 400, floatsUploadedId);
+    const counterTelemetry = {
+        streamId: co.id,
+        tags: {drawCalls: drawCallsId, floatsUploaded: floatsUploadedId},
+        table: counterScope.stringTable(),
+        slab: slabToArray(counterSink.toSlab()),
+        decoded: decode(counterSink.toSlab(), counterScope.widthOf)
+    };
+
     return {
         spp: SPP_VERSION,
         layoutId: LAYOUT_ID,
@@ -206,7 +244,8 @@ export function buildVectors() {
             ringWrap: ringWrap,
             tornChain: tornChain,
             intern: intern,
-            phaseTelemetry: phaseTelemetry
+            phaseTelemetry: phaseTelemetry,
+            counterTelemetry: counterTelemetry
         }
     };
 }

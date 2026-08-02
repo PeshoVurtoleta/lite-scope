@@ -8,7 +8,7 @@ both u16. t = ms since scope epoch. Wide payloads chain CONT records
 (opcode 0x0F01, max 2 per base, static width per op). Opcode high byte is
 the family block: 0x01 trace, 0x02 gc, 0x03 signal, 0x04 gpu+frame,
 0x05 layout, 0x06 inp, 0x07 worker, 0x08 leak, 0x09 profiler phase telemetry,
-0x0F meta/gate.
+0x0A profiler counter telemetry, 0x0F meta/gate.
 Strings are interned to u32 ids at init (scope.intern); never on the wire.
 
 API: createScope({sink,clock,epochWallMs}) -> { register(desc)->channel,
@@ -35,3 +35,12 @@ phase.max, a = stat ms, b = interned phase-tag id. Additive in reserved space;
 SPP stays v1. lite-scope owns the block; lite-profiler is the sole producer and
 inlines the opcodes (imports nothing). See PROTOCOL.md block 0x09 + the
 phaseTelemetry golden vector.
+
+v1.2.0 assigns block 0x0A (lite-profiler counter telemetry): one "counter-telemetry"
+stream, three width-1 LEVEL ops 0x0A00 counter.avg / 0x0A01 counter.max / 0x0A02
+counter.last, a = stat count, b = interned counter-tag id. The trio is avg/max/last
+(not phase's avg/p99/max): counters are deterministic lower-is-better integers, so
+last (current-frame value) and max (gated ceiling) replace the percentile. Additive
+in reserved space; SPP stays v1. lite-scope owns the block; lite-profiler is the sole
+producer and inlines the opcodes (imports nothing). See PROTOCOL.md block 0x0A + the
+counterTelemetry golden vector.

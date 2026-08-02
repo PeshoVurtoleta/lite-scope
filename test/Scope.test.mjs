@@ -6,7 +6,7 @@ import { readFileSync } from 'node:fs';
 import {
   VERSION, SPP_VERSION, SLOTS, LAYOUT_ID, LAYOUT_CHECKSUM,
   BLOCK_TRACE, BLOCK_GC, BLOCK_SIGNAL, BLOCK_GPU, BLOCK_LAYOUT,
-  BLOCK_INP, BLOCK_WORKER, BLOCK_LEAK, BLOCK_PHASE, BLOCK_META,
+  BLOCK_INP, BLOCK_WORKER, BLOCK_LEAK, BLOCK_PHASE, BLOCK_COUNTER, BLOCK_META,
   OP_VOID, OP_EPOCH, OP_CONT, OP_CLOCK_SYNC, OP_GATE_VERDICT, META_STREAM,
   KIND_LEVEL, KIND_INSTANT, KIND_SPAN, KIND_COUNTER, MAX_WIDTH, MAX_PAYLOAD,
   pack, streamOf, opOf, blockOf, fnv1a32,
@@ -32,7 +32,7 @@ function collect(sink) {
 
 describe('version discipline', function () {
   it('VERSION matches package.json (triple bump)', function () {
-    assert.equal(VERSION, '1.1.0');
+    assert.equal(VERSION, '1.2.0');
     assert.equal(PKG.version, VERSION);
   });
 
@@ -78,8 +78,8 @@ describe('packing', function () {
 
   it('block constants cover the frozen map', function () {
     assert.deepEqual(
-      [BLOCK_TRACE, BLOCK_GC, BLOCK_SIGNAL, BLOCK_GPU, BLOCK_LAYOUT, BLOCK_INP, BLOCK_WORKER, BLOCK_LEAK, BLOCK_PHASE, BLOCK_META],
-      [0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0F]
+      [BLOCK_TRACE, BLOCK_GC, BLOCK_SIGNAL, BLOCK_GPU, BLOCK_LAYOUT, BLOCK_INP, BLOCK_WORKER, BLOCK_LEAK, BLOCK_PHASE, BLOCK_COUNTER, BLOCK_META],
+      [0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0A, 0x0F]
     );
   });
 });
@@ -497,6 +497,26 @@ describe('golden vectors (vectors.json is normative)', function () {
     assert.ok(phase.every(function (r) { return r.stream === pt.streamId; }));
     assert.equal(pt.table[pt.tags.physics], 'physics');
     assert.equal(pt.table[pt.tags.render], 'render');
+  });
+
+  it('counter-telemetry vector (block 0x0A) carries interned tag ids in b', function () {
+    const ct = VECTORS.cases.counterTelemetry;
+    const slab = Float64Array.from(ct.slab);
+    const counter = [];
+    readSlab(slab, function () { return 1; }, function (p, t, payload, count) {
+      if (((p & 0xFFFF) >>> 8) === BLOCK_COUNTER) {
+        counter.push({ op: p & 0xFFFF, stream: p >>> 16, a: payload[0], b: payload[1] });
+      }
+    });
+    // Six LEVEL samples: three ops x two counters, b = interned counter-tag id.
+    assert.equal(counter.length, 6);
+    assert.deepEqual(counter.map(function (r) { return r.op; }),
+      [0x0A00, 0x0A01, 0x0A02, 0x0A00, 0x0A01, 0x0A02]);
+    assert.deepEqual(counter.map(function (r) { return r.b; }),
+      [ct.tags.drawCalls, ct.tags.drawCalls, ct.tags.drawCalls, ct.tags.floatsUploaded, ct.tags.floatsUploaded, ct.tags.floatsUploaded]);
+    assert.ok(counter.every(function (r) { return r.stream === ct.streamId; }));
+    assert.equal(ct.table[ct.tags.drawCalls], 'drawCalls');
+    assert.equal(ct.table[ct.tags.floatsUploaded], 'floatsUploaded');
   });
 });
 

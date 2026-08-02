@@ -1,4 +1,4 @@
-// Type definitions for @zakkster/lite-scope 1.1.0
+// Type definitions for @zakkster/lite-scope 1.2.0
 // Protocol: PROTOCOL.md (SPP v1). Conformance: vectors.json.
 
 export const VERSION: string;
@@ -16,6 +16,7 @@ export const BLOCK_INP: number;
 export const BLOCK_WORKER: number;
 export const BLOCK_LEAK: number;
 export const BLOCK_PHASE: number;
+export const BLOCK_COUNTER: number;
 export const BLOCK_META: number;
 
 export const OP_VOID: number;
