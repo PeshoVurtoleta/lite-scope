@@ -192,6 +192,14 @@
         SPP_VERSION, LAYOUT_CHECKSUM, KIND_LEVEL, BLOCK_META
     } from '@zakkster/lite-scope';
 
+    /* ---- dev-only forced-reflow gate: open with #profile (never shipped; demo/ not in files[]) ---- */
+    if (location.hash === '#profile') {
+        import('https://esm.sh/@zakkster/lite-layout-profiler@1').then((m) => {
+            const lp = window.__layout = m.createLayoutProfiler({ warnToConsole: true, phases: true });
+            setTimeout(() => console.log('[#profile] forced reflows:', lp.violationCount, lp.summary()), 5000);
+        });
+    }
+
     /* ---- cached DOM refs ---- */
     const $ring = document.getElementById('ring');
     const $ticker = document.getElementById('ticker');

@@ -66,6 +66,22 @@ registry + mux + timebase]
 - Constants: opcode blocks, meta ops, kinds, packing helpers
   (`pack`/`streamOf`/`opOf`/`blockOf`), `fnv1a32`, `LAYOUT_CHECKSUM`.
 
+## Demo
+
+`demo/index.html` is a single-file visualization of the bus itself (no
+producers): two synthetic streams register through the registry, strings
+intern to u32 ids that ride slot `b`, records flow through a channel into
+the memory-sink ring, and every record is decoded back through `readSlab`.
+Hit **burst** to overrun the ring and watch overwrite-oldest and the
+`overflow` counter climb. Zero-dependency -- it imports only `../Scope.js`
+through an import map. Append `#profile` to the URL for the dev-only
+`@zakkster/lite-layout-profiler` forced-reflow gate. `demo/` never ships
+(`package.json` `files[]`).
+
+```bash
+npx serve .     # then open http://localhost:3000/demo/
+```
+
 ## Status
 
 v1.0.0 freezes SPP v1 milestones M0 (spec + golden vectors) and M1
